@@ -29,11 +29,17 @@ void servo_angle(uint8_t angle){
 void vIRTask(void *pvParameters){
     DDRA &= ~(1 << IR_PIN);
     PORTA |= (1 << IR_PIN);
+    DDRB |= (1 << PB0);
+
+    static uint8_t triggered = 0;
 
     while(1){
-        if(!(PINA & (1 << IR_PIN))){
+        if(!(PINA & (1 << IR_PIN)) && !triggered){
+            triggered = 1;
             xTaskNotifyGive(ServoTaskHandle);
-            vTaskDelay(pdMS_TO_TICKS(500));
+            PORTB |= (1 << PB0);
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            PORTB &= ~(1 << PB0);
         }
         vTaskDelay(pdMS_TO_TICKS(100));
     }
@@ -51,7 +57,6 @@ void vServoTask(void *pvParameters){
 }
 
 int main(void){
-    sei();
 
     xTaskCreate(vIRTask, "IR Task", 128, NULL, 1, NULL);
     xTaskCreate(vServoTask, "Servo Task", 128, NULL, 2, &ServoTaskHandle);
